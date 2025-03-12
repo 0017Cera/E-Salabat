@@ -1,72 +1,80 @@
+import { PageContainer } from '../components/PageContainer';
+import { useNavigate } from 'react-router-dom';
+
 export function About() {
+  const navigate = useNavigate();
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-ginger-700 mb-6">About e-Salabat IoT System</h1>
-      
-      <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-        <section>
-          <h2 className="text-2xl font-semibold text-ginger-600 mb-4">Our Innovation</h2>
-          <p className="text-ginger-700">
-            E-Salabat is an IoT-Based Machine for Powderization of Ginger Extract, designed to innovate, automate, and optimize salabat production through advanced technology and real-time monitoring.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-2xl font-semibold text-ginger-600 mb-4">Key Features</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 bg-salabat-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-ginger-700 mb-2">IoT Integration</h3>
-              <p className="text-ginger-600">Real-time monitoring of temperature, humidity, and grinding speed parameters for optimal production conditions.</p>
-            </div>
-            <div className="p-4 bg-salabat-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-ginger-700 mb-2">Automated Processing</h3>
-              <p className="text-ginger-600">Efficient powderization process with reduced manual labor and increased productivity.</p>
-            </div>
-            <div className="p-4 bg-salabat-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-ginger-700 mb-2">Quality Control</h3>
-              <p className="text-ginger-600">FDA-approved production process ensuring high-quality salabat powder output.</p>
-            </div>
-            <div className="p-4 bg-salabat-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-ginger-700 mb-2">Smart Maintenance</h3>
-              <p className="text-ginger-600">Automated scheduling and notifications for cleaning, maintenance, and important duties.</p>
-            </div>
+    <PageContainer>
+      <div className="w-full min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-3xl bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+          <div className="text-center mb-8">
+            <img 
+              src="/LogoE-Salabat.png" 
+              alt="E-SALABAT" 
+              className="h-20 sm:h-28 mx-auto mb-4 sm:mb-6"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold text-yellow-500 mb-1">
+              About
+            </h1>
           </div>
-        </section>
 
-        <section>
-          <h2 className="text-2xl font-semibold text-ginger-600 mb-4">Sustainability Goals</h2>
-          <ul className="list-disc list-inside space-y-2 text-ginger-700">
-            <li>Supporting SDG 8: Decent Work and Economic Growth through increased productivity</li>
-            <li>Contributing to SDG 9: Industry, Innovation, and Infrastructure</li>
-            <li>Advancing SDG 12: Responsible Consumption and Production</li>
-            <li>Empowering local ginger farmers and producers</li>
-          </ul>
-        </section>
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-xl font-semibold text-ginger-600 mb-4">Our Innovation</h2>
+              <p className="text-ginger-700 text-justify">
+                E-Salabat is an IoT-Based Machine for Powderization of Ginger Extract, designed to innovate, automate, and optimize salabat production through advanced technology and real-time monitoring.
+              </p>
+            </section>
 
-        <section>
-          <h2 className="text-2xl font-semibold text-ginger-600 mb-4">Benefits</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-ginger-700">For Producers</h3>
-              <ul className="list-disc list-inside text-ginger-600">
-                <li>Reduced labor costs</li>
-                <li>Increased production efficiency</li>
-                <li>Consistent product quality</li>
-                <li>Real-time process monitoring</li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-ginger-700">For Farmers</h3>
-              <ul className="list-disc list-inside text-ginger-600">
-                <li>Higher demand for raw materials</li>
-                <li>Better market opportunities</li>
-                <li>Sustainable farming practices</li>
-                <li>Improved income potential</li>
-              </ul>
-            </div>
+            <section>
+              <h2 className="text-xl font-semibold text-ginger-600 mb-4">Developers</h2>
+              <div className="space-y-6">
+                {[ 
+                  { name: "Ramona D. Alcañeses", role: "Lead Developer", img: "/Ramona.jpg" },
+                  { name: "Faith F. Atienza", role: "Lead Programmer", img: "/Faith.jpg" },
+                  { name: "Paul Yngwie O. Cabales", role: "Hardware Designer", img: "/Yngwie.jpg" },
+                  { name: "Danna A. Gutierrez", role: "Lead Technical Writer", img: "/Dans.jpg" },
+                ].map((dev, index) => (
+                  <div key={index} className="flex items-center space-x-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                    <img 
+                      src={dev.img} 
+                      alt={dev.name}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-md"
+                    />
+                    <div>
+                      <h3 className="text-lg font-semibold text-ginger-700">{dev.name}</h3>
+                      <p className="text-ginger-600">{dev.role}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </div>
-    </div>
+
+      {/* Navigation Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t md:hidden shadow-md">
+        <div className="flex justify-around p-4">
+          <button onClick={() => navigate('/dashboard')} className="flex flex-col items-center text-gray-500">
+            <span className="material-icons">home</span>
+            <span className="text-xs">Home</span>
+          </button>
+          <button onClick={() => navigate('/run')} className="flex flex-col items-center text-gray-500">
+            <span className="material-icons">play_arrow</span>
+            <span className="text-xs">Run</span>
+          </button>
+          <button onClick={() => navigate('/logs')} className="flex flex-col items-center text-gray-500">
+            <span className="material-icons">history</span>
+            <span className="text-xs">History</span>
+          </button>
+          <button onClick={() => navigate('/about')} className="flex flex-col items-center text-yellow-500">
+            <span className="material-icons">person</span>
+            <span className="text-xs">About</span>
+          </button>
+        </div>
+      </div>
+    </PageContainer>
   );
 }

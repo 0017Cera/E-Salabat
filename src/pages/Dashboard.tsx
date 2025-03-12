@@ -1,128 +1,265 @@
 import { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-
-// Mock IoT sensor data
-const mockSensorData = {
-  temperature: 65,
-  humidity: 45,
-  grindingSpeed: 1200,
-  status: 'Running',
-  maintenanceDate: '2024-03-15',
-  lastCleaning: '2024-02-28'
-};
+import { useNavigate } from 'react-router-dom';
+import { authService, cleaningScheduleService, type CleaningSchedule } from '../lib/supabase';
+import { PageContainer } from '../components/PageContainer';
+import toast from 'react-hot-toast';
+import { 
+  HomeIcon, 
+  ClockIcon, 
+  PlayIcon, 
+  InformationCircleIcon,
+  TableCellsIcon
+} from '@heroicons/react/24/outline';
 
 export function Dashboard() {
-  const [sensorData, setSensorData] = useState(mockSensorData);
+  const [schedules, setSchedules] = useState<CleaningSchedule[]>([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const navigation = [  
+    { name: 'Home', href: '/', icon: HomeIcon },
+    { name: 'History', href: '/history', icon: ClockIcon },
+    { name: 'Run', href: '/run', icon: PlayIcon },
+    { name: 'Data', href: '/data', icon: TableCellsIcon },
+    { name: 'About', href: '/about', icon: InformationCircleIcon },
+  ];
 
   useEffect(() => {
-    // Simulate real-time sensor updates
-    const interval = setInterval(() => {
-      setSensorData(prev => ({
-        ...prev,
-        temperature: prev.temperature + (Math.random() * 2 - 1),
-        humidity: Math.max(30, Math.min(60, prev.humidity + (Math.random() * 2 - 1))),
-        grindingSpeed: Math.max(1000, Math.min(1400, prev.grindingSpeed + (Math.random() * 50 - 25)))
-      }));
-    }, 3000);
-
-    return () => clearInterval(interval);
+    fetchSchedules();
   }, []);
 
+  const fetchSchedules = async () => {
+    try {
+      const data = await cleaningScheduleService.getSchedules();
+      setSchedules(data || []);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      toast.error('Failed to load schedules');
+    }
+  };
+
+  const handleSetSchedule = async () => {
+    if (!selectedDate) {
+      toast.error('Please select a date');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      await cleaningScheduleService.addSchedule({
+        schedule_date: selectedDate,
+        status: 'pending',
+        created_by: user.id
+      });
+
+      await fetchSchedules();
+      setSelectedDate('');
+      toast.success('Cleaning schedule set successfully');
+    } catch (error) {
+      console.error('Error setting schedule:', error);
+      toast.error('Failed to set schedule');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: number, newStatus: 'pending' | 'completed') => {
+    try {
+      await cleaningScheduleService.updateScheduleStatus(id, newStatus);
+      await fetchSchedules();
+      toast.success('Schedule status updated');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleDeleteSchedule = async (id: number) => {
+    try {
+      await cleaningScheduleService.deleteSchedule(id);
+      await fetchSchedules();
+      toast.success('Schedule deleted');
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      toast.error('Failed to delete schedule');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getCurrentDate = () => {
+    const date = new Date();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = date.toLocaleString('default', { month: 'short' }).toUpperCase();
+    return `${day} ${month}`;
+  };
+
+  const getNextCleaningInfo = () => {
+    if (schedules.length === 0) return null;
+    
+    const today = new Date();
+    const futureDates = schedules
+      .map(schedule => new Date(schedule.schedule_date))
+      .filter(date => date > today);
+
+    if (futureDates.length === 0) return null;
+
+    const nextDate = new Date(Math.min(...futureDates.map(d => d.getTime())));
+    const diffTime = nextDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Logout failed');
+    }
+  };
+
+  const daysUntilCleaning = getNextCleaningInfo();
+
   return (
-    <div className="space-y-6">
-      {/* Machine Status Section */}
-      <div>
-        <h2 className="text-2xl font-bold text-ginger-700 mb-4">Machine Status</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-ginger-600 mb-2">Temperature</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-salabat-600">{sensorData.temperature.toFixed(1)}°C</p>
-            <p className="text-sm text-gray-500">Optimal Range: 60-70°C</p>
+    <PageContainer>
+      <div className="w-full min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+          {/* Header Section */}
+          <div className="mb-8 text-center">
+            <img 
+              src="/LogoE-Salabat.png" 
+              alt="E-SALABAT" 
+              className="h-20 sm:h-28 mx-auto mb-4 sm:mb-6"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold text-yellow-500 mb-1">
+              FRAMSI HART'S TURMERIC
+            </h1>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-ginger-600 mb-2">Humidity</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-salabat-600">{sensorData.humidity.toFixed(1)}%</p>
-            <p className="text-sm text-gray-500">Optimal Range: 30-60%</p>
-          </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-ginger-600 mb-2">Grinding Speed</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-salabat-600">{sensorData.grindingSpeed.toFixed(0)} RPM</p>
-            <p className="text-sm text-gray-500">Optimal Range: 1000-1400 RPM</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Maintenance Schedule */}
-      <div>
-        <h2 className="text-2xl font-bold text-ginger-700 mb-4">Maintenance Schedule</h2>
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <div>
-                <h3 className="text-lg font-semibold text-ginger-600">Next Maintenance</h3>
-                <p className="text-gray-500">{sensorData.maintenanceDate}</p>
+          {/* Next Cleaning Info */}
+          <div className="space-y-6 mb-8">
+            <div className="bg-yellow-50 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-2">{getCurrentDate()}</h2>
+              <div className="text-xl">
+                {daysUntilCleaning ? `${daysUntilCleaning} Days` : 'No Cleaning Schedule'}
               </div>
-              <button className="w-full sm:w-auto bg-salabat-500 text-white px-4 py-2 rounded-md hover:bg-salabat-600">
-                Schedule
+              <p className="text-sm text-gray-700">
+                {daysUntilCleaning ? 'until next cleaning' : ''}
+              </p>
+            </div>
+
+            {/* Schedule Setting Section */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Schedule Cleaning</h2>
+              <div className="mb-4">
+                <label className="block text-gray-600 text-sm font-medium mb-2">
+                  SET DATE
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+              </div>
+              <button 
+                onClick={handleSetSchedule}
+                disabled={!selectedDate || loading}
+                className="w-full bg-yellow-500 text-white py-3 rounded-lg font-medium hover:bg-yellow-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Setting...' : 'SET'}
               </button>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <div>
-                <h3 className="text-lg font-semibold text-ginger-600">Last Cleaning</h3>
-                <p className="text-gray-500">{sensorData.lastCleaning}</p>
+          </div>
+
+          {/* Schedules Table */}
+          <div className="bg-gray-50 rounded-lg p-6 mb-8">
+            <h3 className="text-sm font-medium text-gray-600 mb-4">
+              Cleaning Schedule Log
+            </h3>
+            {schedules.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {schedules.map((schedule) => (
+                      <tr key={schedule.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(schedule.schedule_date)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            schedule.status === 'completed' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <button
+                            onClick={() => handleUpdateStatus(
+                              schedule.id!, 
+                              schedule.status === 'pending' ? 'completed' : 'pending'
+                            )}
+                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                          >
+                            Toggle Status
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSchedule(schedule.id!)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <button className="w-full sm:w-auto bg-salabat-500 text-white px-4 py-2 rounded-md hover:bg-salabat-600">
-                Log Cleaning
-              </button>
-            </div>
+            ) : (
+              <p className="text-center text-gray-500 py-4">No schedules yet</p>
+            )}
           </div>
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors"
+          >
+            Logout
+          </button>
         </div>
       </div>
-
-      {/* Production Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-ginger-700 mb-4">Production Output</h2>
-          <div className="h-60 sm:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={[
-                { time: '00:00', output: 20 },
-                { time: '04:00', output: 45 },
-                { time: '08:00', output: 80 },
-                { time: '12:00', output: 75 },
-                { time: '16:00', output: 90 },
-                { time: '20:00', output: 60 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                <Area type="monotone" dataKey="output" stroke="#FFB800" fill="#FFE299" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-ginger-700 mb-4">Quality Metrics</h2>
-          <div className="h-60 sm:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[
-                { metric: 'Moisture', value: 95 },
-                { metric: 'Particle Size', value: 98 },
-                { metric: 'Purity', value: 97 },
-                { metric: 'Color', value: 94 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="metric" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#E18C29" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    </div>
+    </PageContainer>
   );
 }

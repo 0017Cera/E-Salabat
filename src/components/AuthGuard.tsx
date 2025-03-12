@@ -1,20 +1,23 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { authService } from '../lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-      }
-    };
+    authService.getCurrentUser()
+      .then(user => {
+        setUser(user);
+        setLoading(false);
+      });
+  }, []);
 
-    checkAuth();
-  }, [navigate]);
+  if (loading) return <div>Loading...</div>;
+  
+  if (!user) return <Navigate to="/login" replace />;
 
   return <>{children}</>;
 }

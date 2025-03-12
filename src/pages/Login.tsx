@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { authService } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import { PageContainer } from '../components/PageContainer';
 
 export function Login() {
   const navigate = useNavigate();
@@ -13,94 +14,89 @@ export function Login() {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      setLoading(false);
+      return;
+    }
 
-      if (error) throw error;
-      
-      toast.success('Logged in successfully!');
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message);
+    try {
+      const response = await authService.login({ email, password });
+      if (response.user) {
+        toast.success('Login successful!');
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-salabat-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 className="text-center text-4xl font-bold text-ginger-700 mb-2">e-Salabat</h1>
-        <h2 className="text-center text-xl text-ginger-600">Your Digital Ginger Tea Shop</h2>
-      </div>
+    <PageContainer>
+      <div className="w-full min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+          <div className="mb-8 text-center">
+            <img
+              src="/LogoE-Salabat.png"
+              alt="E-SALABAT"
+              className="h-20 sm:h-28 mx-auto mb-4 sm:mb-6"
+            />
+            <h2 className="text-xl sm:text-2xl font-bold mb-1">Login</h2>
+            <p className="text-gray-500 text-sm">Sign in to continue.</p>
+          </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg shadow-salabat-200/50 sm:rounded-lg sm:px-10 border border-salabat-100">
-          <form className="space-y-6" onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-ginger-700">
-                Email address
+              <label className="block text-gray-600 text-sm font-medium mb-2">
+                Email
               </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-salabat-200 rounded-md shadow-sm placeholder-ginger-300 focus:outline-none focus:ring-salabat-500 focus:border-salabat-500 sm:text-sm"
-                />
-              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+                placeholder="Enter your email"
+                required
+              />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-ginger-700">
+              <label className="block text-gray-600 text-sm font-medium mb-2">
                 Password
               </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-salabat-200 rounded-md shadow-sm placeholder-ginger-300 focus:outline-none focus:ring-salabat-500 focus:border-salabat-500 sm:text-sm"
-                />
-              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+                placeholder="Enter your password"
+                required
+              />
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-salabat-500 hover:bg-salabat-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-salabat-500"
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-yellow-500 text-white py-2.5 sm:py-3 rounded-lg font-medium hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Logging in...' : 'Log in'}
+            </button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-ginger-600">
-                  Don't have an account?{' '}
-                  <Link to="/register" className="font-medium text-salabat-600 hover:text-salabat-500">
-                    Register
-                  </Link>
-                </span>
-              </div>
-            </div>
+          <div className="mt-6 text-center">
+            <span className="text-gray-500">Don't have an account? </span>
+            <Link 
+              to="/register" 
+              className="text-yellow-600 hover:text-yellow-700 font-medium"
+            >
+              Register here
+            </Link>
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

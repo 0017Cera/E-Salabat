@@ -1,37 +1,27 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { authService } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import { PageContainer } from '../components/PageContainer';
 
 export function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      
-      toast.success('Registration successful! Please sign in.');
+      await authService.register({ email, password });
+      toast.success('Please check your email for a confirmation link to complete registration');
       navigate('/login');
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      toast.error('Registration failed: ' + (error as Error).message);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <PageContainer>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your account</h2>
       </div>
@@ -78,10 +68,9 @@ export function Register() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                {loading ? 'Creating account...' : 'Create account'}
+                Create account
               </button>
             </div>
           </form>
@@ -100,6 +89,6 @@ export function Register() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
